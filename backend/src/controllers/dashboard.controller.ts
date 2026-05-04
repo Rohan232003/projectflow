@@ -13,7 +13,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     let inProgressTasks = 0;
     let doneTasks = 0;
     let overdueTasks = 0;
-    let recentTasks = [];
+    let recentTasks: any[] = [];
 
     const now = new Date();
 
@@ -21,35 +21,36 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       const projects = await prisma.project.findMany({ where: { ownerId: user.id }, select: { id: true } });
       const projectIds = projects.map(p => p.id);
 
-      const stats = await prisma.task.groupBy({
-        by: ['status'],
-        where: { projectId: { in: projectIds } },
-        _count: { status: true }
-      });
+      if (projectIds.length > 0) {
+        const stats = await prisma.task.groupBy({
+          by: ['status'],
+          where: { projectId: { in: projectIds } },
+          _count: { status: true }
+        });
 
-      stats.forEach(s => {
-        if (s.status === 'TODO') todoTasks = s._count.status;
-        if (s.status === 'IN_PROGRESS') inProgressTasks = s._count.status;
-        if (s.status === 'DONE') doneTasks = s._count.status;
-      });
+        stats.forEach(s => {
+          if (s.status === 'TODO') todoTasks = s._count.status;
+          if (s.status === 'IN_PROGRESS') inProgressTasks = s._count.status;
+          if (s.status === 'DONE') doneTasks = s._count.status;
+        });
 
-      totalTasks = todoTasks + inProgressTasks + doneTasks;
+        totalTasks = todoTasks + inProgressTasks + doneTasks;
 
-      overdueTasks = await prisma.task.count({
-        where: {
-          projectId: { in: projectIds },
-          status: { not: 'DONE' },
-          dueDate: { lt: now }
-        }
-      });
+        overdueTasks = await prisma.task.count({
+          where: {
+            projectId: { in: projectIds },
+            status: { not: 'DONE' },
+            dueDate: { lt: now }
+          }
+        });
 
-      recentTasks = await prisma.task.findMany({
-        where: { projectId: { in: projectIds } },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-        include: { project: { select: { name: true } }, assignee: { select: { name: true } } }
-      });
-
+        recentTasks = await prisma.task.findMany({
+          where: { projectId: { in: projectIds } },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          include: { project: { select: { name: true } }, assignee: { select: { name: true } } }
+        });
+      }
     } else {
       const stats = await prisma.task.groupBy({
         by: ['status'],
