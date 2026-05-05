@@ -12,6 +12,8 @@ export default function ProjectDetails() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
+  const [assigneeId, setAssigneeId] = useState('');
+  const [members, setMembers] = useState<any[]>([]);
   const [taskStatusMap, setTaskStatusMap] = useState<Record<string, string>>({});
 
   const fetchProject = () => {
@@ -23,7 +25,12 @@ export default function ProjectDetails() {
     });
   };
 
-  useEffect(() => { fetchProject(); }, [id]);
+  useEffect(() => { 
+    fetchProject(); 
+    if (user?.role === 'ADMIN') {
+      axios.get('/users').then(res => setMembers(res.data));
+    }
+  }, [id, user]);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +38,12 @@ export default function ProjectDetails() {
       await axios.post(`/projects/${id}/tasks`, {
         title: taskTitle,
         description: taskDesc,
+        assigneeId: assigneeId || null
       });
       setShowTaskModal(false);
       setTaskTitle('');
       setTaskDesc('');
+      setAssigneeId('');
       fetchProject();
     } catch (err) {
       alert('Failed to create task');
@@ -81,6 +90,15 @@ export default function ProjectDetails() {
                 <label>Description</label>
                 <textarea className="input-field" rows={3} value={taskDesc} onChange={e => setTaskDesc(e.target.value)}></textarea>
               </div>
+              <div className="form-group">
+                <label>Assignee (Optional)</label>
+                <select className="input-field" value={assigneeId} onChange={e => setAssigneeId(e.target.value)}>
+                  <option value="">Unassigned</option>
+                  {members.map(member => (
+                    <option key={member.id} value={member.id}>{member.name} ({member.email})</option>
+                  ))}
+                </select>
+              </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowTaskModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Create</button>
@@ -99,6 +117,11 @@ export default function ProjectDetails() {
               <div>
                 <h4 style={{ fontSize: '1.125rem', fontWeight: 600 }}>{task.title}</h4>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem' }}>{task.description}</p>
+                {task.assignee && (
+                  <p style={{ color: 'var(--primary-color)', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 500 }}>
+                    Assigned to: {task.assignee.name}
+                  </p>
+                )}
               </div>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 <select 

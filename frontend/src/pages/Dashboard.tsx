@@ -8,13 +8,26 @@ export default function Dashboard() {
   const [recentTasks, setRecentTasks] = useState<any[]>([]);
   const { user } = useAuth();
 
-  useEffect(() => {
+  const fetchDashboard = () => {
     axios.get('/dashboard')
       .then(res => {
         setStats(res.data.stats);
         setRecentTasks(res.data.recentTasks);
       });
+  };
+
+  useEffect(() => {
+    fetchDashboard();
   }, []);
+
+  const handleStatusChange = async (taskId: string, newStatus: string) => {
+    try {
+      await axios.put(`/tasks/${taskId}`, { status: newStatus });
+      fetchDashboard();
+    } catch (err) {
+      alert('Failed to update task status');
+    }
+  };
 
   if (!stats) return <div>Loading...</div>;
 
@@ -64,7 +77,16 @@ export default function Dashboard() {
                     Project: {task.project.name}
                   </p>
                 </div>
-                <span className={`badge badge-${task.status}`}>{task.status.replace('_', ' ')}</span>
+                <select 
+                  className="input-field" 
+                  style={{ marginTop: 0, padding: '0.25rem 0.5rem', width: 'auto', minWidth: '120px' }}
+                  value={task.status}
+                  onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                >
+                  <option value="TODO">To Do</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="DONE">Done</option>
+                </select>
               </div>
             ))}
           </div>

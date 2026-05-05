@@ -36,6 +36,7 @@ export const getProjectDetails = async (req: Request, res: Response): Promise<vo
 
     res.json(project);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Error fetching project details' });
   }
 };

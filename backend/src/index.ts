@@ -8,6 +8,7 @@ import { login, register, getMe } from './controllers/auth.controller';
 import { createProject, getProjectDetails, getProjects } from './controllers/projects.controller';
 import { createTask, deleteTask, updateTaskStatus } from './controllers/tasks.controller';
 import { getDashboardStats } from './controllers/dashboard.controller';
+import { prisma } from './db';
 
 dotenv.config();
 
@@ -21,6 +22,19 @@ app.use(express.json());
 app.post('/api/auth/register', validate(registerSchema), register);
 app.post('/api/auth/login', validate(loginSchema), login);
 app.get('/api/auth/me', auth, getMe);
+
+// Users Route (for assignment dropdown)
+app.get('/api/users', auth, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { role: 'MEMBER' },
+      select: { id: true, name: true, email: true }
+    });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching users' });
+  }
+});
 
 // Dashboard Route
 app.get('/api/dashboard', auth, getDashboardStats);
